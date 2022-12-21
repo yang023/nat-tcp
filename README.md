@@ -52,12 +52,12 @@ java -jar ./app-client/app-client-{version}.jar [-Dxxx=xx]
 
 ### To do list
 
--[ ] client、server 的 yml 配置
--[ ] client 端的异常转发
--[ ] server 端的管理配置（接口，ui 待定）
--[x] http 代理
--[ ] 其他 tcp 代理
--[ ] to do 中的战斗机……
+- [ ] client、server 的 yml 配置
+- [ ] client 端的异常转发
+- [ ] server 端的管理配置（接口，ui 待定）
+- [x] http 代理
+- [ ] 其他 tcp 代理
+- [ ] to do 中的战斗机……
 
 ---
 
