@@ -61,7 +61,7 @@ docker build docker build -t nat-app ./app-server/target/
 # 18080: http 代理端口
 # 10243: socket 通信端口
 # 端口在 ./app-server/Dockerfile 中定义 expose，在 ./app-server/main/java/resources/application.yml 中定义
-docker run -itd -p 8080 -p 18080 -p 10243 --name={name} -e {JAVA_OPTS} nat-app
+docker run -itd -p 8080:8080 -p 18080:18080 -p 10243:10243 --name={name} -e {JAVA_OPTS} nat-app
 ```
 
 ### To do list
