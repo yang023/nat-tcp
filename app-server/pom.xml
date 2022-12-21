@@ -28,4 +28,34 @@
         </dependency>
     </dependencies>
 
+    <build>
+        <finalName>nat-app-server</finalName>
+        <resources>
+            <resource>
+                <directory>${basedir}/src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>*</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>${basedir}/</directory>
+                <targetPath>${project.basedir}/target/</targetPath>
+                <filtering>true</filtering>
+                <includes>
+                    <include>Dockerfile</include>
+                </includes>
+            </resource>
+        </resources>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <mainClass>cn.slackoff.nat.app.server.ServerApp</mainClass>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
 </project>

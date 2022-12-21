@@ -44,10 +44,24 @@ mvn package
 
 ```shell
 # 启动服务端（公网[云]主机）
-java -jar ./app-server/app-server-{version}.jar [-Dxxx=xx]
+java -jar ./app-server/nat-app-server.jar [-Dxxx=xx]
 
 # 启动客户端（内网主机）
-java -jar ./app-client/app-client-{version}.jar [-Dxxx=xx]
+java -jar ./app-client/nat-app-client.jar [-Dxxx=xx]
+```
+
+* docker 运行 server 端
+
+```shell
+# 构建
+docker build docker build -t nat-app ./app-server/target/
+
+# 运行
+# 8080: web 接口
+# 18080: http 代理端口
+# 10243: socket 通信端口
+# 端口在 ./app-server/Dockerfile 中定义 expose，在 ./app-server/main/java/resources/application.yml 中定义
+docker run -itd -p 8080 -p 18080 -p 10243 --name={name} -e {JAVA_OPTS} nat-app
 ```
 
 ### To do list

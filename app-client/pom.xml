@@ -30,7 +30,19 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-pool2</artifactId>
         </dependency>
-
     </dependencies>
+
+    <build>
+        <finalName>nat-app-client</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <mainClass>cn.slackoff.nat.app.client.ClientApp</mainClass>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>
