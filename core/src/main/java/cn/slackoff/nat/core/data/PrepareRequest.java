@@ -18,4 +18,6 @@ public class PrepareRequest implements Serializable {
     private TunnelInfo tunnel;
 
     private String channelId;
+
+    private int maxRequestSize;
 }

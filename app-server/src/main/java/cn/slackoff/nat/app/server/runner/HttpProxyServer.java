@@ -13,6 +13,7 @@ import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpRequestDecoder;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.util.unit.DataSize;
 
 /**
  * @author yang
@@ -20,7 +21,10 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class HttpProxyServer extends AbstractNettyServer {
     private static final String DEFAULT_PROXY_HEADER = "X-TUNNEL-PROXY";
+    private static final int DEFAULT_PROXY_REQUEST_SIZE = (int) DataSize.ofMegabytes(10).toBytes();
 
+    @Setter
+    private int maxRequestSize = DEFAULT_PROXY_REQUEST_SIZE;
     @Setter
     private String proxyHeader = DEFAULT_PROXY_HEADER;
 
@@ -33,9 +37,10 @@ public class HttpProxyServer extends AbstractNettyServer {
                 pipeline.addLast(new OriginalBytesHolderHandler());
                 pipeline.addFirst(new ByteArrayEncoder());
                 pipeline.addLast(new HttpRequestDecoder());
-                pipeline.addLast(new HttpObjectAggregator(Integer.MAX_VALUE));
+                pipeline.addLast(new HttpObjectAggregator(maxRequestSize));
                 HttpProxyHandler httpProxyHandler = new HttpProxyHandler();
                 httpProxyHandler.setProxyHeader(proxyHeader);
+                httpProxyHandler.setMaxRequestSize(maxRequestSize);
                 pipeline.addLast(httpProxyHandler);
             }
         });

@@ -2,6 +2,8 @@ package cn.slackoff.nat.core.boot;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.socket.nio.NioSocketChannel;
 
 import java.util.function.Consumer;
 
@@ -10,12 +12,17 @@ import java.util.function.Consumer;
  */
 public class CustomizeNettyClient extends AbstractNettyClient {
 
-    private Consumer<Bootstrap> configurer;
+    private Consumer<NioSocketChannel> configurer;
     private Consumer<ChannelFuture> errorCallback = channelFuture -> channelFuture.channel().close();
 
     @Override
     protected void configClient(Bootstrap bootstrap) {
-        this.configurer.accept(bootstrap);
+        bootstrap.handler(new ChannelInitializer<NioSocketChannel>() {
+            @Override
+            protected void initChannel(NioSocketChannel ch) throws Exception {
+                configurer.accept(ch);
+            }
+        });
     }
 
     @Override
@@ -23,8 +30,16 @@ public class CustomizeNettyClient extends AbstractNettyClient {
         this.errorCallback.accept(channelFuture);
     }
 
-    public void setConfigurer(Consumer<Bootstrap> configurer) {
+    public void setConfigurer(Consumer<NioSocketChannel> configurer) {
         this.configurer = configurer;
+    }
+
+    public void addConfigurer(Consumer<NioSocketChannel> configurer) {
+        if (this.configurer == null) {
+            this.configurer = configurer;
+        } else {
+            this.configurer = this.configurer.andThen(configurer);
+        }
     }
 
     public void setErrorCallback(Consumer<ChannelFuture> errorCallback) {

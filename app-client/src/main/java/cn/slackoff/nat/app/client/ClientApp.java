@@ -1,7 +1,8 @@
 package cn.slackoff.nat.app.client;
 
-import org.springframework.boot.SpringApplication;
+import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.builder.SpringApplicationBuilder;
 
 /**
  * @author yang
@@ -10,6 +11,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class ClientApp {
 
     public static void main(String[] args) {
-        SpringApplication.run(ClientApp.class, args);
+        new SpringApplicationBuilder()
+                .web(WebApplicationType.NONE)
+                .sources(ClientApp.class)
+                .run(args);
     }
 }

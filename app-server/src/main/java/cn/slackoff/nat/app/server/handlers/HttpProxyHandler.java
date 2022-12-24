@@ -24,6 +24,9 @@ public class HttpProxyHandler extends ChannelInboundHandlerAdapter {
     @Setter
     private String proxyHeader;
 
+    @Setter
+    private int maxRequestSize;
+
     private static void sendError(ChannelHandlerContext ctx, HttpVersion version, HttpResponseStatus status) {
         DefaultFullHttpResponse response = new DefaultFullHttpResponse(version, status);
         sendError(ctx, response);
@@ -76,6 +79,7 @@ public class HttpProxyHandler extends ChannelInboundHandlerAdapter {
         PrepareRequest prepareRequest = new PrepareRequest();
         prepareRequest.setTunnel(tunnel);
         prepareRequest.setChannelId(ctx.channel().id().asLongText());
+        prepareRequest.setMaxRequestSize(maxRequestSize);
         DefaultFrameOutput output = new DefaultFrameOutput(registration.getServerChannel());
         output.command(Command.PREPARE_REQUEST)
               .contentType(ContentType.JSON)

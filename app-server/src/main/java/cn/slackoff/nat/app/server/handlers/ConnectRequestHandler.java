@@ -37,7 +37,7 @@ public class ConnectRequestHandler implements FrameHandler {
         // 1. 校验clientId
         Optional<ClientInfo> clientInfo = clientRepository.findByClientId(request.getClientId());
         if (clientInfo.isEmpty()) {
-            ErrorResponse.create(Command.PREPARE_REQUEST, "Not found client-id").write(output);
+            ErrorResponse.create(Command.CONNECT_REQUEST, "Not found client-id").write(output);
             return;
         }
         ClientInfo client = clientInfo.get();

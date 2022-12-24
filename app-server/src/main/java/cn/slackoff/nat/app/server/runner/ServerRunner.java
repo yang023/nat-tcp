@@ -2,7 +2,9 @@ package cn.slackoff.nat.app.server.runner;
 
 import cn.slackoff.nat.app.server.components.client.ClientInfo;
 import cn.slackoff.nat.app.server.components.client.ClientRepository;
+import cn.slackoff.nat.app.server.config.ServerProps;
 import cn.slackoff.nat.core.data.TunnelInfo;
+import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
@@ -19,8 +21,10 @@ import java.util.List;
  * @author yang
  */
 @Slf4j
+@RequiredArgsConstructor
 @Component
 public class ServerRunner implements ApplicationRunner, InitializingBean {
+    private final ServerProps serverProps;
 
     @Setter(onMethod = @__({@Autowired(required = false)}))
     private ClientRepository clientRepository;
@@ -29,8 +33,11 @@ public class ServerRunner implements ApplicationRunner, InitializingBean {
     public void run(ApplicationArguments args) throws Exception {
         TunnelServer tunnelServer = new TunnelServer();
         tunnelServer.setClientRepository(clientRepository);
-        tunnelServer.start(10243);
-        new HttpProxyServer().start(18080);
+        tunnelServer.start(serverProps.getRegistration().getPort());
+        HttpProxyServer httpProxyServer = new HttpProxyServer();
+        httpProxyServer.setMaxRequestSize(serverProps.getHttp().getMaxRequestSize());
+        httpProxyServer.setProxyHeader(serverProps.getHttp().getProxyHeader());
+        httpProxyServer.start(serverProps.getHttp().getPort());
     }
 
     @Override

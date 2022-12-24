@@ -47,7 +47,7 @@ mvn package
 java -jar ./app-server/nat-app-server.jar [-Dxxx=xx]
 
 # 启动客户端（内网主机）
-java -jar ./app-client/nat-app-client.jar [-Dxxx=xx]
+java -jar ./app-client/nat-app-client.jar -c {注册的客户端ID} -s {服务器主机:注册端口} -t {启用的通道列表}
 ```
 
 * docker 运行 server 端
@@ -66,11 +66,13 @@ docker run -itd -p 8080:8080 -p 18080:18080 -p 10243:10243 --name={name} -e {JAV
 
 ### To do list
 
-- [ ] client、server 的 yml 配置
+- [x] client、server 的 yml 配置
 - [ ] client 端的异常转发
 - [ ] server 端的管理配置（接口，ui 待定）
 - [x] http 代理
 - [ ] 其他 tcp 代理
+- [ ] tunnel 信息的数据库保存
+- [ ] client 信息的数据库保存
 - [ ] to do 中的战斗机……
 
 ---
