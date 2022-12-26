@@ -88,7 +88,7 @@ server {
 # 这个没啥必要
 server {
     listen       {要监听的端口};
-    proxy_pass localhost:{socker 通信端口};
+    proxy_pass localhost:{socket 通信端口};
 }
 ```
 
