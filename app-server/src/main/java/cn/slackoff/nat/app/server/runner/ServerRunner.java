@@ -48,12 +48,12 @@ public class ServerRunner implements ApplicationRunner, InitializingBean {
         List<TunnelInfo> list = new ArrayList<>();
         TunnelInfo tunnel = new TunnelInfo();
         tunnel.setId("tunnel1");
-        tunnel.setDomain("dev.proxy.yang023.cn");
+        tunnel.setDomain("dev.nat.yang023.cn");
         tunnel.setEndpoint("127.0.0.1:8080");
         list.add(tunnel);
         tunnel = new TunnelInfo();
         tunnel.setId("tunnel2");
-        tunnel.setDomain("test.proxy.yang023.cn");
+        tunnel.setDomain("test.nat.yang023.cn");
         tunnel.setEndpoint("127.0.0.1:9090");
         list.add(tunnel);
         clientInfo.setTunnels(list);

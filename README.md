@@ -64,6 +64,34 @@ docker build docker build -t nat-app ./app-server/target/
 docker run -itd -p 8080:8080 -p 18080:18080 -p 10243:10243 --name={name} -e {JAVA_OPTS} nat-app
 ```
 
+* Nginx 配置
+
+```nginx
+# 在 http 模块下增加 server：
+server {
+    listen       80;
+    server_name  {自家代理的二级域名泛解析，对应阿里云/腾讯云控制台的配置，如 *.nat.baidu.com};
+    location / {
+	    proxy_pass http://localhost:{http 代理端口};
+    }
+}
+
+# 可为【web 接口】、【socket 通信端口】 同时配置反向代理
+server {
+    listen       80;
+    server_name  {精确的子域名，如natweb.baidu.com};
+    location / {
+	    proxy_pass http://localhost:{web 接口};
+    }
+}
+
+# 这个没啥必要
+server {
+    listen       {要监听的端口};
+    proxy_pass localhost:{socker 通信端口};
+}
+```
+
 ### To do list
 
 - [x] client、server 的 yml 配置
