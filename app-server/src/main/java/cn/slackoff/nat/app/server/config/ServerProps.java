@@ -31,7 +31,7 @@ public class ServerProps {
         /**
          * 绑定的通道域名请求头
          */
-        private String proxyHeader = "X-PROXY";
+        private String proxyHeader = "X-NAT-PROXY";
 
         /**
          * 根域名
