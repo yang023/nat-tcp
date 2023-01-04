@@ -20,7 +20,7 @@ import org.springframework.util.unit.DataSize;
  */
 @Slf4j
 public class HttpProxyServer extends AbstractNettyServer {
-    private static final String DEFAULT_PROXY_HEADER = "X-TUNNEL-PROXY";
+    private static final String DEFAULT_PROXY_HEADER = "X-NAT-PROXY";
     private static final int DEFAULT_PROXY_REQUEST_SIZE = (int) DataSize.ofMegabytes(10).toBytes();
 
     @Setter
