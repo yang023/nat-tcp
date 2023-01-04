@@ -1,6 +1,6 @@
 package cn.slackoff.nat.app.server.components.registration;
 
-import cn.slackoff.nat.app.server.components.client.ClientInfo;
+import cn.slackoff.nat.app.server.components.tunnels.TunnelGroup;
 import cn.slackoff.nat.core.data.TunnelInfo;
 import io.netty.channel.Channel;
 import lombok.AccessLevel;
@@ -25,12 +25,12 @@ public class RegistrationManager {
     private static final ConcurrentMap<String, Registration> clientIdRegistration
             = new ConcurrentHashMap<>();
 
-    public static void create(ClientInfo client, Channel channel) {
+    public static void create(TunnelGroup tunnelGroup, Channel channel) {
         Registration registration = new Registration();
-        registration.setClient(client);
+        registration.setTunnelGroup(tunnelGroup);
         registration.setServerChannel(channel);
 
-        List<TunnelInfo> tunnels = client.getTunnels();
+        List<TunnelInfo> tunnels = tunnelGroup.getTunnels();
         for (TunnelInfo tunnel : tunnels) {
             domainMapping.put(tunnel.getDomain(), tunnel);
             domainRegistration.put(tunnel.getDomain(), registration);
@@ -38,8 +38,8 @@ public class RegistrationManager {
             channel.closeFuture().addListener(e -> domainRegistration.remove(tunnel.getDomain()));
         }
 
-        clientIdRegistration.put(client.getId(), registration);
-        channel.closeFuture().addListener(e -> clientIdRegistration.remove(client.getId()));
+        clientIdRegistration.put(tunnelGroup.getClientId(), registration);
+        channel.closeFuture().addListener(e -> clientIdRegistration.remove(tunnelGroup.getClientId()));
     }
 
     public static Optional<TunnelInfo> findTunnelByDomain(String domain) {

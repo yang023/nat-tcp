@@ -1,8 +1,8 @@
 package cn.slackoff.nat.app.server.handlers;
 
-import cn.slackoff.nat.app.server.components.client.ClientInfo;
-import cn.slackoff.nat.app.server.components.client.ClientRepository;
 import cn.slackoff.nat.app.server.components.registration.RegistrationManager;
+import cn.slackoff.nat.app.server.components.tunnels.TunnelGroup;
+import cn.slackoff.nat.app.server.components.tunnels.TunnelGroupService;
 import cn.slackoff.nat.core.data.ConnectRequest;
 import cn.slackoff.nat.core.data.ConnectResponse;
 import cn.slackoff.nat.core.data.ErrorResponse;
@@ -27,7 +27,7 @@ import java.util.Optional;
 public class ConnectRequestHandler implements FrameHandler {
 
     @Setter
-    private ClientRepository clientRepository;
+    private TunnelGroupService tunnelGroupService;
 
     @Override
     public void handleFrame(FrameInput input, FrameOutput output) throws Exception {
@@ -35,15 +35,15 @@ public class ConnectRequestHandler implements FrameHandler {
         ErrorResponse errorResponse;
 
         // 1. 校验clientId
-        Optional<ClientInfo> clientInfo = clientRepository.findByClientId(request.getClientId());
-        if (clientInfo.isEmpty()) {
+        Optional<TunnelGroup> groupInfo = tunnelGroupService.findByClientId(request.getClientId());
+        if (groupInfo.isEmpty()) {
             ErrorResponse.create(Command.CONNECT_REQUEST, "Not found client-id").write(output);
             return;
         }
-        ClientInfo client = clientInfo.get();
+        TunnelGroup tunnelGroup = groupInfo.get();
 
         // 2. 校验tunnels
-        errorResponse = validClientTunnels(client, request);
+        errorResponse = validClientTunnels(tunnelGroup, request);
         if (errorResponse != null) {
             errorResponse.write(output);
             return;
@@ -56,10 +56,10 @@ public class ConnectRequestHandler implements FrameHandler {
               .contentType(ContentType.JSON)
               .write(connectResponse);
 
-        RegistrationManager.create(client, input.channel());
+        RegistrationManager.create(tunnelGroup, input.channel());
     }
 
-    private ErrorResponse validClientTunnels(ClientInfo client, ConnectRequest request) {
+    private ErrorResponse validClientTunnels(TunnelGroup client, ConnectRequest request) {
         if (request.getTunnels().isEmpty()) {
             return ErrorResponse.create(Command.CONNECT_REQUEST, "Not found client-id");
         }

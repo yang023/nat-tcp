@@ -12,7 +12,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 @SpringBootApplication
 public class ServerApp {
 
-    public static final String CONFIG_PREFIX = "slackoff.nat";
+    public static final String CONFIG_PREFIX = "nat.server";
 
     public static void main(String[] args) {
         SpringApplication.run(ServerApp.class, args);

@@ -1,6 +1,6 @@
 package cn.slackoff.nat.app.server.runner;
 
-import cn.slackoff.nat.app.server.components.client.ClientRepository;
+import cn.slackoff.nat.app.server.components.tunnels.TunnelGroupService;
 import cn.slackoff.nat.app.server.handlers.ConnectRequestHandler;
 import cn.slackoff.nat.app.server.handlers.ErrorResponseHandler;
 import cn.slackoff.nat.app.server.handlers.PrepareResponseHandler;
@@ -26,7 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class TunnelServer extends AbstractNettyServer {
     @Setter
-    private ClientRepository clientRepository;
+    private TunnelGroupService tunnelGroupService;
 
     @Override
     protected void onError(ChannelFuture channelFuture) {
@@ -45,7 +45,7 @@ public class TunnelServer extends AbstractNettyServer {
                 pipeline.addLast(new FrameCodec());
                 pipeline.addLast(new FrameChannelHandler(map -> {
                     ConnectRequestHandler connectRequestHandler = new ConnectRequestHandler();
-                    connectRequestHandler.setClientRepository(clientRepository);
+                    connectRequestHandler.setTunnelGroupService(tunnelGroupService);
                     map.put(FrameMatchers.ofCommand(Command.CONNECT_REQUEST), connectRequestHandler);
 
                     map.put(FrameMatchers.ofCommand(Command.PREPARE_RESPONSE), new PrepareResponseHandler());

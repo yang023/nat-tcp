@@ -22,6 +22,7 @@
     <spring-boot.version>3.0.0</spring-boot.version>
     <netty.version>4.1.84.Final</netty.version>
     <guava.version>31.1-jre</guava.version>
+    <commons-cli.version>1.4</commons-cli.version>
 </properties>
 
 ```
@@ -95,17 +96,18 @@ server {
 ### To do list
 
 - [x] client、server 的 yml 配置
-- [ ] client 端的异常转发
-- [ ] server 端的管理配置（接口，ui 待定）
 - [x] http 代理
+- [x] tunnel 信息的数据库保存
+- [ ] server 端接入 github 认证
+- [ ] server 端的管理配置（接口，ui 待定）
+- [ ] client 程序关闭 console 日志，补充启动时 console 的信息输出
+- [ ] client 端的异常转发
 - [ ] 其他 tcp 代理
-- [ ] tunnel 信息的数据库保存
-- [ ] client 信息的数据库保存
 - [ ] to do 中的战斗机……
 
 ### QA
 
-* 这是什么东西？
+* 这是个什么东西？
 
 > 内网穿透工具，通过报文转发，将部署在内网的服务映射到公网中提供访问。
 

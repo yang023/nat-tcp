@@ -1,4 +1,4 @@
-package cn.slackoff.nat.app.server.components.client;
+package cn.slackoff.nat.app.server.components.tunnels;
 
 import cn.slackoff.nat.core.data.TunnelInfo;
 import lombok.Getter;
@@ -13,9 +13,9 @@ import java.util.List;
  */
 @Getter
 @Setter
-public class ClientInfo implements Serializable {
+public class TunnelGroup implements Serializable {
     @Serial
     private static final long serialVersionUID = -4881373295264245086L;
-    private String id;
+    private String clientId;
     private List<TunnelInfo> tunnels;
 }

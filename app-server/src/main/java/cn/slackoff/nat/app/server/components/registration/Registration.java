@@ -1,6 +1,6 @@
 package cn.slackoff.nat.app.server.components.registration;
 
-import cn.slackoff.nat.app.server.components.client.ClientInfo;
+import cn.slackoff.nat.app.server.components.tunnels.TunnelGroup;
 import io.netty.channel.Channel;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -24,7 +24,7 @@ public class Registration {
     @Getter(AccessLevel.PACKAGE)
     private final Map<String, ProxyErrorConsumer> proxyErrorConsumers = new HashMap<>();
 
-    private ClientInfo client;
+    private TunnelGroup tunnelGroup;
     private Channel serverChannel;
 
     public void addClientChannel(Channel channel, ProxyErrorConsumer proxyErrorConsumer) {

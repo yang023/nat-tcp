@@ -22,6 +22,9 @@ import java.util.Optional;
  */
 public class HttpProxyHandler extends ChannelInboundHandlerAdapter {
     @Setter
+    private String baseDomain;
+
+    @Setter
     private String proxyHeader;
 
     @Setter
@@ -49,6 +52,10 @@ public class HttpProxyHandler extends ChannelInboundHandlerAdapter {
         if (!StringUtils.hasText(domain)) {
             sendError(ctx, request.protocolVersion(), HttpResponseStatus.BAD_REQUEST);
             return;
+        }
+        domain = domain.replace(baseDomain, "");
+        if (domain.endsWith(".")) {
+            domain = domain.substring(0, domain.length() - 1);
         }
 
         Optional<TunnelInfo> tunnelOptional = RegistrationManager.findTunnelByDomain(domain);

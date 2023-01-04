@@ -28,6 +28,9 @@ public class HttpProxyServer extends AbstractNettyServer {
     @Setter
     private String proxyHeader = DEFAULT_PROXY_HEADER;
 
+    @Setter
+    private String baseDomain;
+
     @Override
     protected void configServer(ServerBootstrap bootstrap) {
         bootstrap.childHandler(new ChannelInitializer<NioSocketChannel>() {
@@ -40,6 +43,7 @@ public class HttpProxyServer extends AbstractNettyServer {
                 pipeline.addLast(new HttpObjectAggregator(maxRequestSize));
                 HttpProxyHandler httpProxyHandler = new HttpProxyHandler();
                 httpProxyHandler.setProxyHeader(proxyHeader);
+                httpProxyHandler.setBaseDomain(baseDomain);
                 httpProxyHandler.setMaxRequestSize(maxRequestSize);
                 pipeline.addLast(httpProxyHandler);
             }

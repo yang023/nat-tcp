@@ -31,7 +31,12 @@ public class ServerProps {
         /**
          * 绑定的通道域名请求头
          */
-        private String proxyHeader = "X-TUNNEL-PROXY";
+        private String proxyHeader = "X-PROXY";
+
+        /**
+         * 根域名
+         */
+        private String baseDomain;
     }
 
     @Setter
