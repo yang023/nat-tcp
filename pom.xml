@@ -10,12 +10,6 @@
     <packaging>pom</packaging>
 
     <modules>
-        <!--        <module>nat-support</module>-->
-        <!--        <module>nat-support-client</module>-->
-        <!--        <module>nat-support-server</module>-->
-        <!--        <module>nat-app-server</module>-->
-        <!--        <module>nat-app-client</module>-->
-        <!--        <module>nat-supports</module>-->
         <module>app-client</module>
         <module>app-server</module>
         <module>nat-common</module>
@@ -23,16 +17,13 @@
 
     <properties>
         <revision>0.0.1-SNAPSHOT</revision>
-        <java.version>17</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <java.version>17</java.version>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <spring-boot.version>3.0.0</spring-boot.version>
         <netty.version>4.1.84.Final</netty.version>
         <guava.version>31.1-jre</guava.version>
-        <commons-configuration2.version>2.9.0</commons-configuration2.version>
-        <commons-pool.version>2.11.1</commons-pool.version>
-        <commons-beanutils.version>1.9.4</commons-beanutils.version>
         <jetbrains-anno.version>23.1.0</jetbrains-anno.version>
         <reactor.version>2022.0.10</reactor.version>
     </properties>
@@ -82,21 +73,6 @@
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
                 <version>${guava.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-configuration2</artifactId>
-                <version>${commons-configuration2.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-pool2</artifactId>
-                <version>${commons-pool.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>commons-beanutils</groupId>
-                <artifactId>commons-beanutils</artifactId>
-                <version>${commons-beanutils.version}</version>
             </dependency>
 
             <dependency>
