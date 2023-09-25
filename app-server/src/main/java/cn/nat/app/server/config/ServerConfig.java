@@ -22,9 +22,12 @@ public class ServerConfig {
 
     private Map<String, Gateway> gateway = new HashMap<>();
 
+    @Getter
     @Setter
     public static class Gateway {
         private int port;
+
+        private Map<String, String> properties = new HashMap<>();
 
         public int getPort() {
             if (port <= 0) {

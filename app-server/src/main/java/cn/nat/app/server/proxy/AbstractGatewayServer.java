@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
  */
 public abstract class AbstractGatewayServer<T extends AbstractGatewayServer<T>> extends AbstractNettyServerContainer<T> {
     private static final AttributeKey<Channel> GATEWAY_STREAM_KEY = AttributeKey.valueOf("gateway-stream");
+    private static final AttributeKey<String> GATEWAY_STREAM_ID_KEY = AttributeKey.valueOf("gateway-stream-id");
     private static final UnbindChannelMatcher UNBIND_MATCHER = new UnbindChannelMatcher();
 
     private final ChannelSelector selector;
@@ -45,9 +46,10 @@ public abstract class AbstractGatewayServer<T extends AbstractGatewayServer<T>> 
 
                 Channel gatewayChannel = ctx.channel();
                 if (isFirstMessage(msg)) {
-                    String proxyName = resolveProxyName(msg);
+                    String tunnel = resolveTunnel(msg);
+                    cacheStreamId(gatewayChannel, tunnel);
 
-                    ChannelGroup channels = context.getContainer(ProxyStreamServer.class).findChannelGroup(proxyName);
+                    ChannelGroup channels = context.getContainer(ProxyStreamServer.class).findChannelGroup(tunnel);
                     bindCodec(channels);
 
                     // 选出一个
@@ -57,7 +59,7 @@ public abstract class AbstractGatewayServer<T extends AbstractGatewayServer<T>> 
                                 .collect(Collectors.toSet());
                         select = selector.select(collect);
                         select.ifPresent(ch -> {
-                            cacheStreamId(gatewayChannel, ch);
+                            cacheStreamChannel(gatewayChannel, ch);
                             ProxyChannelMapping.bind(gatewayChannel, ch, stream -> {
                                 onStreamMessage(gatewayChannel, stream);
                             });
@@ -67,15 +69,15 @@ public abstract class AbstractGatewayServer<T extends AbstractGatewayServer<T>> 
                     if (select.isPresent()) {
                         select.get().writeAndFlush(msg);
                     } else {
-                        sendChannelFoundError(gatewayChannel, msg);
+                        sendChannelFoundError(gatewayChannel, msg, tunnel);
                     }
                 } else {
-                    Channel streamChannel = loadStreamId(gatewayChannel);
+                    Channel streamChannel = loadStreamChannel(gatewayChannel);
 
                     if (streamChannel != null) {
                         streamChannel.writeAndFlush(msg);
                     } else {
-                        sendChannelFoundError(gatewayChannel, msg);
+                        sendChannelFoundError(gatewayChannel, msg, loadStreamId(gatewayChannel));
                     }
                 }
             }
@@ -95,9 +97,7 @@ public abstract class AbstractGatewayServer<T extends AbstractGatewayServer<T>> 
     }
 
     private void onStreamMessage(Channel gateway, Object msg) {
-        gateway.writeAndFlush(msg).addListener(f -> {
-            gateway.read();
-        });
+        gateway.writeAndFlush(msg).addListener(f -> gateway.read());
     }
 
     protected abstract String print(ServerConfig.Gateway proxy);
@@ -108,20 +108,34 @@ public abstract class AbstractGatewayServer<T extends AbstractGatewayServer<T>> 
 
     protected abstract void bindCodec(ChannelGroup channels);
 
-    protected abstract String resolveProxyName(Object msg);
+    protected abstract String resolveTunnel(Object msg);
 
-    protected abstract void sendChannelFoundError(Channel gateway, Object msg);
+    protected abstract void sendChannelFoundError(Channel gateway, Object msg, String tunnel);
 
-    private static void cacheStreamId(Channel gateway, Channel stream) {
+    private static void cacheStreamChannel(Channel gateway, Channel stream) {
         synchronized (GATEWAY_STREAM_KEY) {
             Attribute<Channel> attr = gateway.attr(GATEWAY_STREAM_KEY);
             attr.set(stream);
         }
     }
 
-    private static Channel loadStreamId(Channel gateway) {
+    private static void cacheStreamId(Channel gateway, String streamId) {
+        synchronized (GATEWAY_STREAM_KEY) {
+            Attribute<String> attr = gateway.attr(GATEWAY_STREAM_ID_KEY);
+            attr.set(streamId);
+        }
+    }
+
+    private static Channel loadStreamChannel(Channel gateway) {
         synchronized (GATEWAY_STREAM_KEY) {
             Attribute<Channel> attr = gateway.attr(GATEWAY_STREAM_KEY);
+            return attr.get();
+        }
+    }
+
+    private static String loadStreamId(Channel gateway) {
+        synchronized (GATEWAY_STREAM_ID_KEY) {
+            Attribute<String> attr = gateway.attr(GATEWAY_STREAM_ID_KEY);
             return attr.get();
         }
     }

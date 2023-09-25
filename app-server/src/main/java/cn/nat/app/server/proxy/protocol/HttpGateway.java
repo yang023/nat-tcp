@@ -12,12 +12,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 /**
  * @author yang
  */
 @Component
 public final class HttpGateway extends AbstractGatewayServer<HttpGateway> {
+    private static final String DEFAULT_TUNNEL_PARAMETER = "x-tunnel";
+    private static final String TUNNEL_PROPERTY_PARAMETER = "tunnel.header";
+
+    private String tunnelParameter;
 
     public HttpGateway() {
         super("http");
@@ -33,6 +38,9 @@ public final class HttpGateway extends AbstractGatewayServer<HttpGateway> {
     protected void checkIfPreset(ServerConfig config) {
         ServerConfig.Gateway gateway = config.getGateway(this.protocol());
         gateway.setPort(gateway.getPort(8080));
+
+        Map<String, String> properties = gateway.getProperties();
+        tunnelParameter = properties.getOrDefault(TUNNEL_PROPERTY_PARAMETER, DEFAULT_TUNNEL_PARAMETER);
     }
 
     @Override
@@ -59,23 +67,27 @@ public final class HttpGateway extends AbstractGatewayServer<HttpGateway> {
     }
 
     @Override
-    protected String resolveProxyName(Object msg) {
-        return "test";
-    }
-
-    @Override
     protected boolean isFirstMessage(Object msg) {
         return msg instanceof HttpRequest;
     }
 
     @Override
-    protected void sendChannelFoundError(Channel gateway, Object msg) {
+    protected String resolveTunnel(Object msg) {
+        HttpRequest request = (HttpRequest) msg;
+
+        HttpHeaders headers = request.headers();
+
+        return headers.get(tunnelParameter);
+    }
+
+    @Override
+    protected void sendChannelFoundError(Channel gateway, Object msg, String tunnel) {
         if (msg instanceof LastHttpContent) {
             DefaultFullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
 
             ByteBuf content = response.content();
             // TODO 找个页面展示
-            content.writeCharSequence("未注册代理通道", StandardCharsets.UTF_8);
+            content.writeCharSequence("未注册代理通道 - %s".formatted(tunnel), StandardCharsets.UTF_8);
 
             response.headers().set(HttpHeaderNames.CONTENT_LENGTH, content.readableBytes());
             response.headers().set(HttpHeaderNames.CONTENT_TYPE, "text/plain;charset=utf-8");
