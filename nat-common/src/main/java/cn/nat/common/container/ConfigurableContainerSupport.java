@@ -1,15 +1,12 @@
 package cn.nat.common.container;
 
 import java.util.Collection;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * @author yang
  */
 @SuppressWarnings("unchecked")
-public abstract class ConfigurableContainerSupport<C, S extends ConfigurableContainerSupport<C, S>> implements Container {
-
-    private final Collection<Resource> resources = new CopyOnWriteArrayList<>();
+public abstract class ConfigurableContainerSupport<C, S extends ConfigurableContainerSupport<C, S>> extends ContainerSupport<S> {
 
     private C config;
 
@@ -19,23 +16,14 @@ public abstract class ConfigurableContainerSupport<C, S extends ConfigurableCont
     }
 
     @Override
-    public synchronized void start(Context context) {
+    protected synchronized final Collection<Resource> start0(Context context) {
         checkIfPreset(config);
 
-        Collection<Resource> res = start(context, config);
-
-        resources.addAll(res);
+        return start(context, config);
     }
 
     @Override
-    public synchronized final void stop() {
-        for (Resource resource : resources) {
-            resource.release();
-        }
-    }
-
-    @Override
-    public final String printInfo() {
+    protected String print0() {
         return print(config);
     }
 

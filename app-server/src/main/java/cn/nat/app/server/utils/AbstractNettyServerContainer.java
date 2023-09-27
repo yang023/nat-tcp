@@ -1,6 +1,5 @@
 package cn.nat.app.server.utils;
 
-import cn.nat.app.server.config.ServerConfig;
 import cn.nat.common.container.ConfigurableContainerSupport;
 import cn.nat.common.container.Resource;
 import cn.nat.common.netty.NettyInitializer;
@@ -16,11 +15,11 @@ import java.util.List;
 /**
  * @author yang
  */
-public abstract class AbstractNettyServerContainer<T extends AbstractNettyServerContainer<T>>
-        extends ConfigurableContainerSupport<ServerConfig, T> {
+public abstract class AbstractNettyServerContainer<C, T extends AbstractNettyServerContainer<C, T>>
+        extends ConfigurableContainerSupport<C, T> {
 
     @Override
-    protected Collection<Resource> start(Context context, ServerConfig config) {
+    protected Collection<Resource> start(Context context, C config) {
         NioEventLoopGroup boss = new NioEventLoopGroup();
         NioEventLoopGroup worker = new NioEventLoopGroup();
         ServerBootstrap bootstrap = NettyInitializer.createServerBootstrap();
@@ -29,7 +28,7 @@ public abstract class AbstractNettyServerContainer<T extends AbstractNettyServer
         bootstrap.childHandler(new ChannelInitializer<NioSocketChannel>() {
             @Override
             protected void initChannel(NioSocketChannel ch) throws Exception {
-                configure(context, ch);
+                configure(context, config, ch);
             }
         });
 
@@ -40,7 +39,7 @@ public abstract class AbstractNettyServerContainer<T extends AbstractNettyServer
         return List.of(boss::shutdownGracefully, worker::shutdownGracefully);
     }
 
-    protected abstract int resolvePort(ServerConfig config);
+    protected abstract int resolvePort(C config);
 
-    protected abstract void configure(Context context, NioSocketChannel channel);
+    protected abstract void configure(Context context, C config, NioSocketChannel channel);
 }

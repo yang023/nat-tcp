@@ -2,26 +2,18 @@ package cn.nat.app.server.command;
 
 import cn.nat.app.server.command.handlers.ClientStartupFrameHandler;
 import cn.nat.app.server.config.ServerConfig;
-import cn.nat.common.container.ConfigurableContainerSupport;
-import cn.nat.common.container.Resource;
-import cn.nat.common.netty.NettyInitializer;
-import cn.nat.common.protocol.DatagramFrameDispatcher;
+import cn.nat.app.server.utils.AbstractNettyServerContainer;
 import cn.nat.common.protocol.FrameHandlerRegistry;
-import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.nio.NioDatagramChannel;
+import cn.nat.common.protocol.StreamFrameDispatcher;
+import io.netty.channel.socket.nio.NioSocketChannel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
-import java.util.Collection;
-import java.util.Collections;
 
 /**
  * @author yang
  */
 @Component
-public class CommandServer extends ConfigurableContainerSupport<ServerConfig, CommandServer> {
+public class CommandServer extends AbstractNettyServerContainer<ServerConfig, CommandServer> {
 
     private final FrameHandlerRegistry registry = new FrameHandlerRegistry();
 
@@ -32,17 +24,15 @@ public class CommandServer extends ConfigurableContainerSupport<ServerConfig, Co
     }
 
     @Override
-    protected Collection<Resource> start(Context context, ServerConfig config) {
+    protected int resolvePort(ServerConfig config) {
+        return config.getPort();
+    }
+
+    @Override
+    protected void configure(Context context, ServerConfig config, NioSocketChannel channel) {
         initializeHandlers(config);
 
-        EventLoopGroup eventLoopGroup = new NioEventLoopGroup();
-        Bootstrap bootstrap = NettyInitializer.createBootstrap();
-        bootstrap.group(eventLoopGroup).channel(NioDatagramChannel.class);
-        bootstrap.handler(new DatagramFrameDispatcher(registry));
-
-        bootstrap.bind(config.getPort());
-
-        return Collections.singletonList(eventLoopGroup::shutdownGracefully);
+        channel.pipeline().addLast(new StreamFrameDispatcher(registry));
     }
 
     @Override
@@ -51,6 +41,6 @@ public class CommandServer extends ConfigurableContainerSupport<ServerConfig, Co
     }
 
     private void initializeHandlers(ServerConfig config) {
-        registry.register(new ClientStartupFrameHandler(config));
+        registry.register(new ClientStartupFrameHandler(config, CommandChannelMapping::add));
     }
 }

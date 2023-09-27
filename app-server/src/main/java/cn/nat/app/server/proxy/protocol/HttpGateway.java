@@ -2,96 +2,104 @@ package cn.nat.app.server.proxy.protocol;
 
 import cn.nat.app.server.config.ServerConfig;
 import cn.nat.app.server.proxy.AbstractGatewayServer;
-import io.netty.buffer.ByteBuf;
+import cn.nat.app.server.proxy.ProxyMessageHandler;
+import cn.nat.common.data.ErrorFrame;
+import cn.nat.common.utils.BufferUtil;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelPipeline;
-import io.netty.channel.group.ChannelGroup;
 import io.netty.handler.codec.http.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.nio.charset.StandardCharsets;
+import java.io.IOException;
 import java.util.Map;
 
 /**
  * @author yang
  */
 @Component
-public final class HttpGateway extends AbstractGatewayServer<HttpGateway> {
-    private static final String DEFAULT_TUNNEL_PARAMETER = "x-tunnel";
-    private static final String TUNNEL_PROPERTY_PARAMETER = "tunnel.header";
+public class HttpGateway extends AbstractGatewayServer {
+    private static final String DEFAULT_TUNNEL_KEY = "x-tunnel";
+    private static final String DEFAULT_TUNNEL_PARAMETER = "tunnel";
 
-    private String tunnelParameter;
-
-    public HttpGateway() {
-        super("http");
-    }
+    private String tunnelKey;
 
     @Autowired
+    public void setConfig(ServerConfig config) {
+        config(config.getGateway("http"));
+    }
+
     @Override
-    public HttpGateway config(ServerConfig config) {
+    public AbstractGatewayServer config(ServerConfig.Gateway config) {
+        Map<String, String> properties = config.getProperties();
+        tunnelKey = properties.getOrDefault(DEFAULT_TUNNEL_PARAMETER, DEFAULT_TUNNEL_KEY);
         return super.config(config);
     }
 
     @Override
-    protected void checkIfPreset(ServerConfig config) {
-        ServerConfig.Gateway gateway = config.getGateway(this.protocol());
-        gateway.setPort(gateway.getPort(8080));
-
-        Map<String, String> properties = gateway.getProperties();
-        tunnelParameter = properties.getOrDefault(TUNNEL_PROPERTY_PARAMETER, DEFAULT_TUNNEL_PARAMETER);
-    }
-
-    @Override
-    protected String print(ServerConfig.Gateway gateway) {
-        return "Http Gateway Proxy Service %d".formatted(gateway.getPort());
-    }
-
-    @Override
-    protected void gatewayDecoder(ChannelPipeline pipeline) {
+    protected void applyGatewayCodec(ChannelPipeline pipeline) {
         pipeline.addLast(new HttpServerCodec());
     }
 
     @Override
-    protected void bindCodec(ChannelGroup channels) {
-        for (Channel channel : channels) {
-            ChannelPipeline pipeline = channel.pipeline();
-            if (pipeline.get(HttpRequestEncoder.class) == null) {
-                pipeline.addFirst(new HttpRequestEncoder());
-            }
-            if (pipeline.get(HttpResponseDecoder.class) == null) {
-                pipeline.addFirst(new HttpResponseDecoder());
-            }
+    protected ProxyMessageHandler createMessageHandler() {
+        return new HttpMessageHandler(tunnelKey);
+    }
+
+    @Override
+    protected int resolvePort(ServerConfig.Gateway gateway) {
+        return gateway.getPort(8080);
+    }
+
+    @Override
+    protected String print(ServerConfig.Gateway config) {
+        return "Http Gateway Server start on :%d".formatted(config.getPort());
+    }
+
+    static class HttpMessageHandler implements ProxyMessageHandler {
+        private final String tunnelKey;
+
+        HttpMessageHandler(String tunnelKey) {
+            this.tunnelKey = tunnelKey;
         }
-    }
 
-    @Override
-    protected boolean isFirstMessage(Object msg) {
-        return msg instanceof HttpRequest;
-    }
+        @Override
+        public boolean isFirstRequest(Object msg) {
+            return msg instanceof HttpRequest;
+        }
 
-    @Override
-    protected String resolveTunnel(Object msg) {
-        HttpRequest request = (HttpRequest) msg;
+        @Override
+        public boolean isLastResponse(Object msg) {
+            return msg instanceof LastHttpContent;
+        }
 
-        HttpHeaders headers = request.headers();
+        @Override
+        public boolean closeOnLastResponse() {
+            return true;
+        }
 
-        return headers.get(tunnelParameter);
-    }
+        @Override
+        public void applyStreamCodec(ChannelPipeline pipeline) {
+            pipeline.addFirst(new HttpResponseDecoder());
+            pipeline.addFirst(new HttpRequestEncoder());
+        }
 
-    @Override
-    protected void sendChannelFoundError(Channel gateway, Object msg, String tunnel) {
-        if (msg instanceof LastHttpContent) {
-            DefaultFullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
+        @Override
+        public String findTunnelKey(Object msg) throws IOException {
+            HttpRequest request = (HttpRequest) msg;
+            HttpHeaders headers = request.headers();
+            String tunnel = headers.get(DEFAULT_TUNNEL_KEY);
+            headers.remove(tunnelKey);
+            return tunnel;
+        }
 
-            ByteBuf content = response.content();
-            // TODO 找个页面展示
-            content.writeCharSequence("未注册代理通道 - %s".formatted(tunnel), StandardCharsets.UTF_8);
-
-            response.headers().set(HttpHeaderNames.CONTENT_LENGTH, content.readableBytes());
-            response.headers().set(HttpHeaderNames.CONTENT_TYPE, "text/plain;charset=utf-8");
-
+        @Override
+        public void sendError(Channel gateway, ErrorFrame error) throws IOException {
+            DefaultFullHttpResponse response = new DefaultFullHttpResponse(
+                    HttpVersion.HTTP_1_1, HttpResponseStatus.valueOf(error.code()));
+            response.headers().set(HttpHeaderNames.CONTENT_TYPE, "text/plain;charset=utf8");
+            BufferUtil.writeLine(response.content(), error.message(), "");
             gateway.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
         }
     }

@@ -13,6 +13,7 @@ import java.util.Optional;
  * @author yang
  */
 abstract class FrameDispatcher<T> extends ChannelInboundHandlerAdapter {
+    private static final DefaultErrorHandler DEFAULT_ERROR_HANDLER = new DefaultErrorHandler();
     private final TypeParameterMatcher matcher;
     private final FrameHandlerRegistry registry;
 
@@ -40,8 +41,7 @@ abstract class FrameDispatcher<T> extends ChannelInboundHandlerAdapter {
                     if (handler.isEmpty()) {
                         ErrorFrame error = new ErrorFrame().message(
                                 "Error command: [%s]".formatted(deserialize.command()));
-                        Frame errorFrame = error.createFrame();
-                        context.sendResponse(errorFrame);
+                        applyError(context, error);
                         return;
                     }
 
@@ -49,8 +49,7 @@ abstract class FrameDispatcher<T> extends ChannelInboundHandlerAdapter {
                         handler.get().handle(context, deserialize);
                     } catch (Exception ex) {
                         ErrorFrame error = new ErrorFrame().message(ex.getMessage());
-                        Frame errorFrame = error.createFrame();
-                        context.sendResponse(errorFrame);
+                        applyError(context, error);
                     }
                 }
             } else {
@@ -67,4 +66,23 @@ abstract class FrameDispatcher<T> extends ChannelInboundHandlerAdapter {
     protected abstract ByteBuf provide(T msg) throws Exception;
 
     protected abstract FrameHandler.Context createContext(ChannelHandlerContext ctx, T msg) throws Exception;
+
+    private void applyError(FrameHandler.Context context, ErrorFrame error) throws Exception {
+        Frame frame = error.createFrame();
+        Optional<FrameHandler> handler = registry.findHandler(frame);
+        handler.orElse(DEFAULT_ERROR_HANDLER).handle(context, frame);
+    }
+
+    static class DefaultErrorHandler extends AbstractFrameHandler {
+        DefaultErrorHandler() {
+            super(ErrorFrame.FRAME_COMMAND);
+        }
+
+        @Override
+        public void handle(Context ctx, Frame input) throws Exception {
+            ErrorFrame frame = new ErrorFrame();
+            frame.readFrame(input);
+            System.err.printf("错误消息: %d - %s", frame.code(), frame.message());
+        }
+    }
 }

@@ -1,0 +1,1 @@
+org.springframework.boot.env.EnvironmentPostProcessor=cn.nat.app.client.spring.env.CustomConfigFileEnvironmentPostProcessor

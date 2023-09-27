@@ -107,5 +107,17 @@ public final class ContainerManager {
                 logger.info("容器已添加并启动: {}", container.printInfo());
             }
         }
+
+        @Override
+        public <C extends Container> void stopAndRemove(C container) {
+            if (!this.containers.contains(container)) {
+                return;
+            }
+            synchronized (this.containers) {
+                container.stop();
+                this.containers.remove(container);
+                logger.info("容器已停止并移除: {}", container.printInfo());
+            }
+        }
     }
 }

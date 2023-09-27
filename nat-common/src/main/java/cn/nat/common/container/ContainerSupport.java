@@ -10,13 +10,21 @@ public abstract class ContainerSupport<S extends ContainerSupport<S>> implements
 
     private final Collection<Resource> resources = new CopyOnWriteArrayList<>();
 
+    private volatile boolean running;
+
     @Override
     public synchronized final void start(Context context) {
+        if (running) {
+            return;
+        }
+
         checkIfPreset();
 
         Collection<Resource> res = start0(context);
 
         resources.addAll(res);
+
+        running = true;
     }
 
     @Override
@@ -29,6 +37,11 @@ public abstract class ContainerSupport<S extends ContainerSupport<S>> implements
     @Override
     public final String printInfo() {
         return print0();
+    }
+
+    @Override
+    public boolean isRunning() {
+        return this.running;
     }
 
     protected void checkIfPreset() {

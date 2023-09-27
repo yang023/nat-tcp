@@ -2,149 +2,29 @@ package cn.nat.app.server.proxy;
 
 import cn.nat.app.server.config.ServerConfig;
 import cn.nat.app.server.utils.AbstractNettyServerContainer;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
+import cn.nat.common.netty.NettyInitializer;
+import cn.nat.common.utils.DataSize;
 import io.netty.channel.ChannelPipeline;
-import io.netty.channel.group.ChannelGroup;
-import io.netty.channel.group.ChannelMatcher;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.util.Attribute;
-import io.netty.util.AttributeKey;
-
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
+import org.checkerframework.checker.units.qual.C;
 
 /**
  * @author yang
  */
-public abstract class AbstractGatewayServer<T extends AbstractGatewayServer<T>> extends AbstractNettyServerContainer<T> {
-    private static final AttributeKey<Channel> GATEWAY_STREAM_KEY = AttributeKey.valueOf("gateway-stream");
-    private static final AttributeKey<String> GATEWAY_STREAM_ID_KEY = AttributeKey.valueOf("gateway-stream-id");
-    private static final UnbindChannelMatcher UNBIND_MATCHER = new UnbindChannelMatcher();
-
-    private final ChannelSelector selector;
-    private final String protocol;
-
-    protected AbstractGatewayServer(String protocol) {
-        this.selector = ChannelSelectors.getDefault();
-        this.protocol = protocol;
-    }
-
-    protected String protocol() {
-        return this.protocol;
-    }
+public abstract class AbstractGatewayServer
+        extends AbstractNettyServerContainer<ServerConfig.Gateway, AbstractGatewayServer> {
 
     @Override
-    protected void configure(Context context, NioSocketChannel channel) {
+    protected final void configure(Context context, ServerConfig.Gateway config, NioSocketChannel channel) {
         ChannelPipeline pipeline = channel.pipeline();
-        gatewayDecoder(pipeline);
-        pipeline.addLast(new ChannelInboundHandlerAdapter() {
-            @Override
-            public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+        applyGatewayCodec(pipeline);
+        NettyInitializer.withTrafficShaping(channel, DataSize.parseToBytes("200MB"), DataSize.parseToBytes("200MB"));
 
-                Channel gatewayChannel = ctx.channel();
-                if (isFirstMessage(msg)) {
-                    String tunnel = resolveTunnel(msg);
-                    cacheStreamId(gatewayChannel, tunnel);
-
-                    ChannelGroup channels = context.getContainer(ProxyStreamServer.class).findChannelGroup(tunnel);
-                    bindCodec(channels);
-
-                    // 选出一个
-                    Optional<Channel> select;
-                    synchronized (ChannelSelectors.class) {
-                        Set<Channel> collect = channels.stream().filter(UNBIND_MATCHER::matches)
-                                .collect(Collectors.toSet());
-                        select = selector.select(collect);
-                        select.ifPresent(ch -> {
-                            cacheStreamChannel(gatewayChannel, ch);
-                            ProxyChannelMapping.bind(gatewayChannel, ch, stream -> {
-                                onStreamMessage(gatewayChannel, stream);
-                            });
-                        });
-                    }
-
-                    if (select.isPresent()) {
-                        select.get().writeAndFlush(msg);
-                    } else {
-                        sendChannelFoundError(gatewayChannel, msg, tunnel);
-                    }
-                } else {
-                    Channel streamChannel = loadStreamChannel(gatewayChannel);
-
-                    if (streamChannel != null) {
-                        streamChannel.writeAndFlush(msg);
-                    } else {
-                        sendChannelFoundError(gatewayChannel, msg, loadStreamId(gatewayChannel));
-                    }
-                }
-            }
-        });
+        pipeline.addLast(new ProxyGatewayHandler(createMessageHandler()));
     }
 
-    @Override
-    protected int resolvePort(ServerConfig config) {
-        ServerConfig.Gateway proxy = config.getGateway(protocol);
-        return proxy.getPort();
-    }
+    protected void applyConfig(C config) {}
 
-    @Override
-    protected String print(ServerConfig config) {
-        ServerConfig.Gateway proxy = config.getGateway(protocol);
-        return print(proxy);
-    }
-
-    private void onStreamMessage(Channel gateway, Object msg) {
-        gateway.writeAndFlush(msg).addListener(f -> gateway.read());
-    }
-
-    protected abstract String print(ServerConfig.Gateway proxy);
-
-    protected abstract boolean isFirstMessage(Object msg);
-
-    protected abstract void gatewayDecoder(ChannelPipeline pipeline);
-
-    protected abstract void bindCodec(ChannelGroup channels);
-
-    protected abstract String resolveTunnel(Object msg);
-
-    protected abstract void sendChannelFoundError(Channel gateway, Object msg, String tunnel);
-
-    private static void cacheStreamChannel(Channel gateway, Channel stream) {
-        synchronized (GATEWAY_STREAM_KEY) {
-            Attribute<Channel> attr = gateway.attr(GATEWAY_STREAM_KEY);
-            attr.set(stream);
-        }
-    }
-
-    private static void cacheStreamId(Channel gateway, String streamId) {
-        synchronized (GATEWAY_STREAM_KEY) {
-            Attribute<String> attr = gateway.attr(GATEWAY_STREAM_ID_KEY);
-            attr.set(streamId);
-        }
-    }
-
-    private static Channel loadStreamChannel(Channel gateway) {
-        synchronized (GATEWAY_STREAM_KEY) {
-            Attribute<Channel> attr = gateway.attr(GATEWAY_STREAM_KEY);
-            return attr.get();
-        }
-    }
-
-    private static String loadStreamId(Channel gateway) {
-        synchronized (GATEWAY_STREAM_ID_KEY) {
-            Attribute<String> attr = gateway.attr(GATEWAY_STREAM_ID_KEY);
-            return attr.get();
-        }
-    }
-
-    static class UnbindChannelMatcher implements ChannelMatcher {
-
-        @Override
-        public boolean matches(Channel channel) {
-            return !ProxyChannelMapping.isBound(channel);
-        }
-    }
+    protected abstract void applyGatewayCodec(ChannelPipeline pipeline);
+    protected abstract ProxyMessageHandler createMessageHandler();
 }

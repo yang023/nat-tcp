@@ -13,6 +13,7 @@ public class ConnectFrame extends AbstractData {
      * 隧道代理名称
      */
     private String tunnel;
+    private String requestId;
 
     public String tunnel() {
         return tunnel;
@@ -23,13 +24,24 @@ public class ConnectFrame extends AbstractData {
         return this;
     }
 
+    public String requestId() {
+        return requestId;
+    }
+
+    public ConnectFrame requestId(String requestId) {
+        this.requestId = requestId;
+        return this;
+    }
+
     @Override
     protected void readFrom(ByteBuf content) {
+        this.requestId = BufferUtil.readLine(content);
         this.tunnel = BufferUtil.readLine(content);
     }
 
     @Override
     protected void writeTo(ByteBuf content) {
+        BufferUtil.writeLine(content, this.requestId);
         BufferUtil.writeLine(content, this.tunnel);
     }
 }

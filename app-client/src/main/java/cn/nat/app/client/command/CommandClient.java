@@ -1,23 +1,26 @@
 package cn.nat.app.client.command;
 
+import cn.nat.app.client.command.handlers.ChannelRequestFrameHandler;
 import cn.nat.app.client.command.handlers.ServerEndpointFrameHandler;
 import cn.nat.app.client.config.ClientConfig;
 import cn.nat.app.client.data.ProxyTunnel;
 import cn.nat.common.container.ConfigurableContainerSupport;
 import cn.nat.common.container.Resource;
+import cn.nat.common.data.ClientStartupFrame;
 import cn.nat.common.netty.NettyInitializer;
-import cn.nat.common.protocol.DatagramFrameDispatcher;
+import cn.nat.common.protocol.Frame;
 import cn.nat.common.protocol.FrameHandlerRegistry;
+import cn.nat.common.protocol.StreamFrameDispatcher;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.nio.NioDatagramChannel;
+import io.netty.channel.socket.nio.NioSocketChannel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -36,20 +39,31 @@ public class CommandClient extends ConfigurableContainerSupport<ClientConfig, Co
 
     @Override
     protected Collection<Resource> start(Context context, ClientConfig config) {
+        CommandClient _this = this;
         initializeHandlers(context, config);
 
         EventLoopGroup eventLoopGroup = new NioEventLoopGroup();
         Bootstrap bootstrap = NettyInitializer.createBootstrap();
-        bootstrap.group(eventLoopGroup).channel(NioDatagramChannel.class);
-        bootstrap.handler(new DatagramFrameDispatcher(registry));
+        bootstrap.group(eventLoopGroup).channel(NioSocketChannel.class);
+        bootstrap.handler(new StreamFrameDispatcher(registry));
 
-        bootstrap.bind(0).addListener((ChannelFutureListener) future -> {
+        ClientConfig.Server server = config.getServer();
+
+        bootstrap.connect(server.getHost(), server.getPort()).addListener((ChannelFutureListener) future -> {
             if (future.isSuccess()) {
-                new Startup().config(config).execute(future);
+                List<String> tunnels = config.getTunnels().stream().map(ClientConfig.Tunnel::getName).toList();
+                Frame frame = new ClientStartupFrame().clientId(config.getClientId()).tunnels(tunnels).createFrame();
+                future.channel().writeAndFlush(frame.serialize()).addListener(started -> {
+                    if (!started.isSuccess()) {
+                        context.stopAndRemove(_this);
+                    }
+                });
+            } else {
+                context.stopAndRemove(_this);
             }
         });
 
-        return Collections.singletonList(eventLoopGroup::shutdownGracefully);
+        return List.of(eventLoopGroup::shutdownGracefully);
     }
 
     @Override
@@ -59,9 +73,18 @@ public class CommandClient extends ConfigurableContainerSupport<ClientConfig, Co
     }
 
     private void initializeHandlers(Context context, ClientConfig config) {
-        // TODO 配置
-        ProxyTunnel tunnel = new ProxyTunnel().name("test").host("localhost").port(80);
-        List<ProxyTunnel> tunnels = List.of(tunnel);
-        registry.register(new ServerEndpointFrameHandler(context, config, tunnels));
+        List<ClientConfig.Tunnel> tunnelConfigs = config.getTunnels();
+        List<ProxyTunnel> tunnels = new ArrayList<>(tunnelConfigs.size());
+        for (ClientConfig.Tunnel tunnelConfig : tunnelConfigs) {
+            // @formatter:off
+            ProxyTunnel tunnel = new ProxyTunnel()
+                    .name(tunnelConfig.getName())
+                    .host(tunnelConfig.getHost())
+                    .port(tunnelConfig.getPort());
+            // @formatter:on
+            tunnels.add(tunnel);
+        }
+        registry.register(new ServerEndpointFrameHandler(config.getServer().getHost()));
+        registry.register(new ChannelRequestFrameHandler(tunnels));
     }
 }

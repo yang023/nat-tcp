@@ -13,6 +13,8 @@ public interface Container {
 
     String printInfo();
 
+    boolean isRunning();
+
     interface Context {
 
         default <C extends Container> C getContainer(Class<C> containerClass) {
@@ -23,5 +25,7 @@ public interface Container {
         <C extends Container> Collection<C> getContainers(Class<C> containerClass);
 
         <C extends Container> void addAndStart(C container);
+
+        <C extends Container> void stopAndRemove(C container);
     }
 }

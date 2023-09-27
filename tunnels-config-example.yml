@@ -1,0 +1,8 @@
+nat:
+  server:
+    host: 127.0.0.1
+  client-id: 1234567
+  tunnels:
+    - name: [name-for-proxy-key]
+      host: [internal-server-host]
+      port: [internal-server-port]
