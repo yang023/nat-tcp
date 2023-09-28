@@ -21,10 +21,11 @@ final class ProxyClientHandler extends ChannelInboundHandlerAdapter {
         sender.config(tunnel);
         sender.start(null);
 
-        sender.closeFuture().addListener(f -> ctx.channel().close());
+        ctx.channel().closeFuture().addListener(f -> sender.stop());
 
         sender.registerMessageListener(
-                msg -> ctx.writeAndFlush(msg).addListener((ChannelFutureListener) f -> f.channel().read()));
+                msg -> ctx.writeAndFlush(msg).addListener(
+                        (ChannelFutureListener) f -> f.channel().read()));
     }
 
     @Override
